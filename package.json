@@ -4,7 +4,7 @@
   "description": "CKs Express Mongo Test on Render",
   "main": "testmongo.js",
   "repository": "https://github.com/TylerEscuriex/MongoRender",
-  "author": "CK",
+  "author": "Charts User",
   "license": "MIT",
   "private": false,
   "scripts": {
