@@ -1,9 +1,9 @@
 {
-  "name": "ckMongoTest",
+  "name": "MongoRender2",
   "version": "1.0.0",
   "description": "CKs Express Mongo Test on Render",
   "main": "testmongo.js",
-  "repository": "https://github.com/ckorpio/MongoRender",
+  "repository": "https://github.com/TylerEscuriex/MongoRender",
   "author": "CK",
   "license": "MIT",
   "private": false,
