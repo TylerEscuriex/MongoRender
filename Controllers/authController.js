@@ -13,6 +13,12 @@ exports.register = async (req, res) => {
     }
 };
 
+// Connect to MongoDB
+        const client = new MongoClient(uri);
+        await client.connect();
+        const db = client.db('temdb'); // Change to your database name
+        const users = db.collection('users'); // Create a collection named 'users'
+
 // Log in a volunteer (implement authentication here)
 exports.login = (req, res) => {
     res.render('login');
