@@ -1,4 +1,9 @@
+const path = require('path');
+const { MongoClient } = require("mongodb");
 const Volunteer = require('../models/Volunteer');
+// The uri string must be the connection string for the database (obtained on Atlas).
+const uri = "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/?retryWrites=true&w=majority&appName=temdb";
+
 
 // Register a new volunteer
 exports.register = async (req, res) => {
