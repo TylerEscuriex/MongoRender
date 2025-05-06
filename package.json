@@ -1,9 +1,12 @@
 {
-  "name": "ckMongoTest",
+  "name": "ckmongotest",
   "version": "1.0.0",
   "description": "CKs Express Mongo Test on Render",
   "main": "testmongo.js",
-  "repository": "https://github.com/ckorpio/MongoRender",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ckorpio/MongoRender.git"
+  },
   "author": "CK",
   "license": "MIT",
   "private": false,
@@ -11,10 +14,18 @@
     "start": "node testmongo.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "mongodb": "^5.1.0"
+    "body-parser": "^2.2.0",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "mongodb": "^5.9.2",
+    "mongoose": "^8.14.1"
   },
   "engines": {
     "node": ">=14"
-  }
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/ckorpio/MongoRender/issues"
+  },
+  "homepage": "https://github.com/ckorpio/MongoRender#readme"
 }
