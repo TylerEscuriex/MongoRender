@@ -8,7 +8,7 @@ async function getAllTopicsWithMessages() {
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db('temdb');
-        const topics = db.collection('topics');
+        const topics = db.collection('MyDBexample');
 
         // Find all topics
         const allTopics = await topics.find({}).toArray();
@@ -33,7 +33,7 @@ async function getMessagesByTopicName(topicName) {
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db('temdb');
-        const topics = db.collection('topics');
+        const topics = db.collection('MyDBexample');
 
         // Find messages for the given topic name
         const topic = await topics.findOne({ name: topicName });
@@ -55,7 +55,7 @@ async function createTopic(req, res) {
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db('temdb');
-        const topics = db.collection('topics');
+        const topics = db.collection('MyDBexample');
 
         // Find the topic by name
         const topic = await topics.findOne({ name: topicName });
@@ -88,7 +88,7 @@ async function subscribeToTopic(req, res) {
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db('temdb');
-        const users = db.collection('users');
+        const users = db.collection('MyDBexample');
 
         // Find the user by ID
         const user = await users.findOne({ user_ID });
@@ -122,7 +122,7 @@ async function unsubscribeFromTopic(req, res) {
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db('temdb');
-        const users = db.collection('users');
+        const users = db.collection('MyDBexample');
 
         // Find the user by ID
         const user = await users.findOne({ user_ID });

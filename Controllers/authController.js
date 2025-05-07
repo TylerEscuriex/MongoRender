@@ -24,7 +24,7 @@ exports.registerUser = async (req, res) => {
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db('temdb');
-        const users = db.collection('users');
+        const users = db.collection('MyDBexample');
 
         // Check if user already exists
         const existingUser = await users.findOne({ user_ID });
@@ -51,7 +51,7 @@ exports.loginUser = async (req, res) => {
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db('temdb');
-        const users = db.collection('users');
+        const users = db.collection('MyDBexample');
 
         const user = await users.findOne({ user_ID });
         if (!user) {
