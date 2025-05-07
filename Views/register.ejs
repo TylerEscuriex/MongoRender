@@ -8,7 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Navbar directly embedded -->
+    <!-- Navbar embedded -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
       <div class="container">
         <a class="navbar-brand" href="/">Message Board</a>
@@ -53,7 +53,7 @@
                         <h3>Register</h3>
                     </div>
                     <div class="card-body">
-                        <!-- Display error message if present -->
+                        <!-- Display error message -->
                         <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
                             <div class="alert alert-danger" role="alert">
                                 <%= errorMessage %>
