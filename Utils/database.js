@@ -1,5 +1,7 @@
-// utils/database.js
+// utils/database.js - Enhanced Singleton for database connection
 const { MongoClient } = require("mongodb");
+
+// Use environment variables for connection URI, with fallback
 const uri = process.env.MONGODB_URI || "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/";
 
 class DatabaseConnection {
@@ -7,6 +9,9 @@ class DatabaseConnection {
         if (DatabaseConnection.instance) {
             return DatabaseConnection.instance;
         }
+        
+        // Log connection string (with password hidden for security)
+        console.log("Database URI:", uri.replace(/mongodb\+srv:\/\/[^:]+:([^@]+)@/, "mongodb+srv://[username]:[hidden]@"));
         
         this.client = new MongoClient(uri);
         this.connected = false;
@@ -17,14 +22,18 @@ class DatabaseConnection {
     async connect() {
         if (!this.connected) {
             if (!this.connectionPromise) {
+                console.log("Attempting to establish database connection...");
                 this.connectionPromise = this.client.connect().then(() => {
                     this.connected = true;
                     this.db = this.client.db('temdb');
                     console.log("Connected to database using Singleton pattern");
                     return this.db;
+                }).catch(err => {
+                    console.error("Database connection error:", err);
+                    throw err;
                 });
             }
-            return this.connectionPromise;
+            await this.connectionPromise;
         }
         return this.db;
     }
@@ -39,8 +48,10 @@ class DatabaseConnection {
             await this.client.close();
             this.connected = false;
             this.connectionPromise = null;
+            console.log("Database connection closed");
         }
     }
 }
 
+// Export a singleton instance
 module.exports = new DatabaseConnection();

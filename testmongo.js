@@ -1,4 +1,4 @@
-// testmongo.js - Updated to implement all requirements
+// testmongo.js - Updated to work in both local and Render environments
 
 // Load environment variables from .env file
 require('dotenv').config();
@@ -8,12 +8,13 @@ console.log("Application starting...");
 const express = require('express');
 const app = express();
 const path = require('path');
+// Use PORT from environment or fallback to 3000 for local development
 const port = process.env.PORT || 3000;
 
 // Import the singleton database connection
-const database = require('./Utils/database');
+const database = require('./utils/database');
 // Import the observer pattern implementation
-const observer = require('./Utils/observer');
+const observer = require('./utils/observer');
 
 console.log("Imported core modules");
 
@@ -128,9 +129,17 @@ async function startServer() {
     console.log("Database connected via Singleton pattern");
     
     // Listen on all interfaces (0.0.0.0) instead of just localhost
+    // This works both locally and on Render
     const server = app.listen(port, '0.0.0.0', () => {
       console.log(`Server started successfully on port ${port}`);
-      console.log(`Server is accessible at http://0.0.0.0:${port}`);
+      
+      // Detect if running in production (Render) or local environment
+      const isProduction = process.env.NODE_ENV === 'production';
+      if (isProduction) {
+        console.log(`Server is deployed and running on Render`);
+      } else {
+        console.log(`Server is running locally at http://localhost:${port}`);
+      }
     });
     
     // Handle server errors
