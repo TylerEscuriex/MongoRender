@@ -22,9 +22,13 @@
                 <div class="topic border p-3 rounded">
                     <h2 class="mb-3"><%= topic.name %></h2>
                     <ul class="list-group mb-3">
-                        <% topic.messages.forEach(message => { %>
-                            <li class="list-group-item"><%= message %></li>
-                        <% }) %>                    
+                        <% if (topic.messages && Array.isArray(topic.messages)) { %>
+                            <% topic.messages.forEach(message => { %>
+                                <li class="list-group-item"><%= message %></li>
+                            <% }) %>
+                        <% } else { %>
+                            <li class="list-group-item">No messages in this topic yet</li>
+                        <% } %>
                     </ul>
                     <!-- Updated form to include topic name -->
 <form action="/topics" method="POST">
