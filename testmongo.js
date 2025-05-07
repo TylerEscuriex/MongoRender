@@ -1,6 +1,4 @@
-// testmongo.js - Fully edited with improved error handling
-
-console.log("Application starting...");
+// testmongo.js - Updated with lowercase folder names
 
 const express = require('express');
 const { MongoClient } = require("mongodb");
@@ -8,14 +6,15 @@ const app = express();
 const path = require('path');
 const port = process.env.PORT || 3000;
 
+console.log("Application starting...");
 console.log("Imported core modules");
 
-// Import routes
+// Import routes - Using lowercase folder names
 let authRoutes, topicsRoutes;
 try {
   console.log("Attempting to import route modules...");
-  authRoutes = require('./routes/authRoutes.js');
-  topicsRoutes = require('./routes/topicsRoutes.js');
+  authRoutes = require('./Routes/authRoutes.js');
+  topicsRoutes = require('./Routes/topicsRoutes.js');
   console.log("Successfully imported route modules");
 } catch (error) {
   console.error("Error importing route modules:", error);
@@ -54,15 +53,12 @@ async function connectToDatabase() {
   }
 }
 
-// Configure Express application
-console.log("Configuring Express application...");
-
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 console.log("Added body parsing middleware");
 
-// Set views directory
+// Set views directory - Using lowercase folder names
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 console.log("Set up EJS view engine with views directory:", path.join(__dirname, 'views'));
@@ -185,12 +181,10 @@ async function startServer() {
 // Catch any unhandled errors
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  // Don't exit the process here, just log the error
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Promise Rejection:', reason);
-  // Don't exit the process here, just log the error
 });
 
 // Start the server

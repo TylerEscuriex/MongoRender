@@ -5,12 +5,12 @@ const uri = "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.
 
 // Function to render the register form
 exports.renderRegisterForm = (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'views', 'register.html'));
+    res.sendFile(path.join(__dirname, '..', 'Views', 'register.html'));
 };
 
 // Function to render the login form
 exports.renderLoginForm = (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'views', 'login.html'));
+    res.sendFile(path.join(__dirname, '..', 'Views', 'login.html'));
 };
 
 // Function to handle user registration
@@ -24,7 +24,7 @@ exports.registerUser = async (req, res) => {
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db('temdb');
-        const users = db.collection('MyDBexample');
+        const users = db.collection('Users');
 
         // Check if user already exists
         const existingUser = await users.findOne({ user_ID });
@@ -51,7 +51,7 @@ exports.loginUser = async (req, res) => {
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db('temdb');
-        const users = db.collection('MyDBexample');
+        const users = db.collection('User');
 
         const user = await users.findOne({ user_ID });
         if (!user) {

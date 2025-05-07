@@ -8,7 +8,7 @@ async function getAllTopicsWithMessages() {
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db('temdb');
-        const topics = db.collection('MyDBexample');
+        const topics = db.collection('Topics');
 
         // Find all topics with their messages directly
         const allTopics = await topics.find({}).toArray();
