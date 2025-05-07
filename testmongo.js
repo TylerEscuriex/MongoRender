@@ -1,4 +1,7 @@
-// testmongo.js - Updated with navigation bar support and EJS rendering
+// testmongo.js - Updated for Render deployment
+
+// Load environment variables from .env file
+require('dotenv').config();
 
 console.log("Application starting...");
 
@@ -22,7 +25,7 @@ try {
   process.exit(1); // Exit if route modules can't be loaded
 }
 
-// MongoDB URI
+// MongoDB URI from environment variables
 const uri = process.env.MONGODB_URI || "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/";
 console.log("Using MongoDB URI:", uri.replace(/mongodb\+srv:\/\/[^:]+:([^@]+)@/, "mongodb+srv://[username]:[hidden]@"));
 
@@ -132,9 +135,10 @@ async function startServer() {
   try {
     const connected = await connectToDatabase();
     if (connected) {
-      const server = app.listen(port, () => {
+      // Listen on all interfaces (0.0.0.0) instead of just localhost
+      const server = app.listen(port, '0.0.0.0', () => {
         console.log(`Server started successfully on port ${port}`);
-        console.log(`Server is accessible at http://localhost:${port}`);
+        console.log(`Server is accessible at http://0.0.0.0:${port}`);
       });
       
       // Handle server errors
