@@ -1,3 +1,4 @@
+<!-- Views/home.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,7 +26,7 @@
             </li>
           </ul>
           <ul class="navbar-nav">
-            <% if (authToken) { %>
+            <% if (typeof authToken !== 'undefined' && authToken) { %>
               <li class="nav-item">
                 <span class="nav-link">Logged in as: <%= authToken %></span>
               </li>
@@ -55,8 +56,44 @@
             <hr class="my-4">
             
             <% if(authToken) { %>
-                <p>You're logged in and ready to participate!</p>
-                <a class="btn btn-primary btn-lg" href="/topics" role="button">View Topics</a>
+                <!-- Dashboard for logged-in users showing recent messages (T2.1) -->
+                <div class="mt-4">
+                    <h2>Your Subscribed Topics</h2>
+                    
+                    <% if(subscribedTopics && subscribedTopics.length > 0) { %>
+                        <div class="row mt-3">
+                            <% subscribedTopics.forEach(topic => { %>
+                                <div class="col-md-6 mb-4">
+                                    <div class="card">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0"><%= topic.name %></h5>
+                                            <form action="/topics/unsubscribe" method="POST" class="d-inline">
+                                                <input type="hidden" name="topicId" value="<%= topic._id %>">
+                                                <button class="btn btn-sm btn-warning" type="submit">Unsubscribe</button>
+                                            </form>
+                                        </div>
+                                        <div class="card-body">
+                                            <h6>Recent Messages:</h6>
+                                            <% if(topic.messages && topic.messages.length > 0) { %>
+                                                <ul class="list-group list-group-flush mb-3">
+                                                    <% topic.messages.forEach(message => { %>
+                                                        <li class="list-group-item"><%= message %></li>
+                                                    <% }) %>
+                                                </ul>
+                                            <% } else { %>
+                                                <p class="text-muted">No messages yet</p>
+                                            <% } %>
+                                            <a href="/topics" class="btn btn-primary btn-sm">View All Topics</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                    <% } else { %>
+                        <p>You haven't subscribed to any topics yet.</p>
+                        <a class="btn btn-primary" href="/topics" role="button">Browse Topics</a>
+                    <% } %>
+                </div>
             <% } else { %>
                 <p>Sign in to view your subscribed topics or create new ones.</p>
                 <a class="btn btn-primary btn-lg" href="/login" role="button">Login</a>

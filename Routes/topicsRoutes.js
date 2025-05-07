@@ -1,4 +1,4 @@
-// routes/topicsRoutes.js
+// Routes/topicsRoutes.js
 const express = require('express');
 const router = express.Router();
 const topicsController = require('../Controllers/topicsController');
@@ -6,31 +6,52 @@ const topicsController = require('../Controllers/topicsController');
 // GET request to fetch topics and render the topics page
 router.get('/topics', async (req, res) => {
     try {
-        // Fetch all topics along with their messages/comments
-        const topics = await topicsController.getAllTopicsWithMessages();
-        console.log('Fetched topics:', topics); // Add this for debugging
+        const userId = req.cookies.authToken;
+        let subscribedTopics = [];
+        let availableTopics = [];
+        let statistics = {};
         
-        // Render the topics page with the fetched topics
+        // If user is logged in, get their subscribed topics with recent messages (T2.1)
+        if (userId) {
+            subscribedTopics = await topicsController.getTopicsWithRecentMessages(userId);
+            // Get topics available for subscription (T2.2)
+            availableTopics = await topicsController.getAvailableTopics(userId);
+        } else {
+            // If not logged in, get all topics
+            availableTopics = await topicsController.getAllTopics();
+        }
+        
+        // Get topic statistics (T8)
+        statistics = await topicsController.getTopicStatistics();
+        
+        // Render the page with all data
         res.render('topics', { 
-            topics: topics || [], // Ensure topics is always defined
-            authToken: req.cookies.authToken || null // Always pass authToken
+            subscribedTopics: subscribedTopics || [],
+            availableTopics: availableTopics || [],
+            statistics,
+            authToken: userId || null
         });
     } catch (error) {
-        console.error('Error fetching topics:', error);
-        // Render the page with an empty topics array in case of error
+        console.error('Error loading topics page:', error);
         res.render('topics', { 
-            topics: [],
-            authToken: req.cookies.authToken || null // Always pass authToken
+            subscribedTopics: [],
+            availableTopics: [],
+            statistics: { totalTopics: 0, totalAccesses: 0, topicsByAccess: [] },
+            authToken: req.cookies.authToken || null
         });
     }
 });
 
-// POST request to create a new topic
-router.post('/topics', (req, res) => {
-    // For any post requests, ensure we add the authToken to the request object
-    req.authToken = req.cookies.authToken || null;
-    // Call the controller function
-    topicsController.createTopic(req, res);
-});
+// POST request to create a new topic (T3)
+router.post('/topics/create', topicsController.createTopic);
+
+// POST request to add a message to a topic (T4)
+router.post('/topics/message', topicsController.addMessage);
+
+// POST request to subscribe to a topic
+router.post('/topics/subscribe', topicsController.subscribeToTopic);
+
+// POST request to unsubscribe from a topic (T2.2)
+router.post('/topics/unsubscribe', topicsController.unsubscribeFromTopic);
 
 module.exports = router;
