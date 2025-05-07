@@ -1,4 +1,4 @@
-// utils/database.js
+// Utils/database.js
 const { MongoClient } = require("mongodb");
 
 // Use environment variables for connection URI, with fallback

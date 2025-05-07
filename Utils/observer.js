@@ -1,4 +1,4 @@
-// utils/observer.js
+// Utils/observer.js
 class Observer {
     constructor() {
         this.observers = new Map(); // Map of topicId -> array of user_IDs

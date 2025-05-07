@@ -1,7 +1,7 @@
 // Controllers/topicsController.js
 const { ObjectId } = require('mongodb');
-const database = require('../utils/database');
-const observer = require('../utils/observer');
+const database = require('../Utils/database');
+const observer = require('../Utils/observer');
 
 // Get all topics
 async function getAllTopics() {
@@ -121,6 +121,23 @@ async function createTopic(req, res) {
             return res.status(400).json({ error: 'Topic already exists' });
         }
         
+        // Find or create user
+        let user = await usersCollection.findOne({ user_ID: userId });
+        if (!user) {
+            // Create user if they don't exist
+            const result = await usersCollection.insertOne({
+                user_ID: userId,
+                password: "",
+                subscribedTopics: []
+            });
+            user = {
+                _id: result.insertedId,
+                user_ID: userId,
+                subscribedTopics: []
+            };
+            console.log('Created new user for topic creation:', userId);
+        }
+        
         // Create new topic with initial access count of 0
         const result = await topicsCollection.insertOne({
             name,
@@ -181,16 +198,35 @@ async function addMessage(req, res) {
             return res.status(404).json({ error: 'Topic not found' });
         }
         
-        // Check if user is subscribed to the topic (T4)
-        const user = await usersCollection.findOne({ user_ID: userId });
+        // Find or create user
+        let user = await usersCollection.findOne({ user_ID: userId });
+        if (!user) {
+            // Create user if they don't exist
+            const result = await usersCollection.insertOne({
+                user_ID: userId,
+                password: "",
+                subscribedTopics: []
+            });
+            user = {
+                _id: result.insertedId,
+                user_ID: userId,
+                subscribedTopics: []
+            };
+            console.log('Created new user for message posting:', userId);
+        }
         
         // Initialize subscribedTopics if it doesn't exist
         if (!user.subscribedTopics) {
             user.subscribedTopics = [];
+            await usersCollection.updateOne(
+                { user_ID: userId },
+                { $set: { subscribedTopics: [] } }
+            );
         }
         
-        const isSubscribed = user && user.subscribedTopics && 
-                            user.subscribedTopics.some(id => id.toString() === topic._id.toString());
+        const isSubscribed = user.subscribedTopics.some(id => 
+            id && id.toString() === topic._id.toString()
+        );
         
         if (!isSubscribed) {
             return res.status(403).json({ error: 'You must be subscribed to post messages' });
@@ -247,23 +283,44 @@ async function subscribeToTopic(req, res) {
         
         console.log('Found topic:', topic.name); // Debug logging
         
-        // Find user
-        const user = await usersCollection.findOne({ user_ID: userId });
+        // Find user - Try to find existing user
+        let user = await usersCollection.findOne({ user_ID: userId });
+        
+        // If user not found, create a new user record
         if (!user) {
-            console.error('User not found:', userId);
-            return res.status(404).json({ error: 'User not found' });
+            console.log('User not found, creating user record for:', userId);
+            
+            // Create a new user with the auth token as the ID
+            const result = await usersCollection.insertOne({
+                user_ID: userId,
+                password: "", // Empty password since this is an auto-created user
+                subscribedTopics: []
+            });
+            
+            user = {
+                _id: result.insertedId,
+                user_ID: userId,
+                subscribedTopics: []
+            };
+            
+            console.log('Created new user:', user.user_ID);
         }
         
-        console.log('Found user:', user.user_ID); // Debug logging
+        console.log('Using user:', user.user_ID); // Debug logging
         
         // Initialize subscribedTopics array if it doesn't exist
         if (!user.subscribedTopics) {
+            console.log('Initializing subscribedTopics array');
+            await usersCollection.updateOne(
+                { user_ID: userId },
+                { $set: { subscribedTopics: [] } }
+            );
             user.subscribedTopics = [];
         }
         
         // Check if user is already subscribed
         const isAlreadySubscribed = user.subscribedTopics.some(id => 
-            id.toString() === topicId.toString()
+            id && id.toString() === topicId.toString()
         );
         
         if (isAlreadySubscribed) {
@@ -285,7 +342,7 @@ async function subscribeToTopic(req, res) {
         res.redirect('/topics');
     } catch (error) {
         console.error('Error subscribing to topic:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: 'Internal Server Error: ' + error.message });
     }
 }
 
@@ -310,6 +367,13 @@ async function unsubscribeFromTopic(req, res) {
         } catch (error) {
             console.error('Invalid topic ID format:', topicId);
             return res.status(400).json({ error: 'Invalid topic ID format' });
+        }
+        
+        // Find user
+        const user = await usersCollection.findOne({ user_ID: userId });
+        if (!user) {
+            console.error('User not found:', userId);
+            return res.status(404).json({ error: 'User not found' });
         }
         
         // Unsubscribe user from topic
