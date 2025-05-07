@@ -1,4 +1,4 @@
-// models/Topic.js
+
 const { Schema, model } = require('mongoose');
 
 const topicSchema = new Schema({
