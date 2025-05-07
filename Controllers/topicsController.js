@@ -1,4 +1,4 @@
-// topicsController.js - Updated for new database structure
+// topicsController.js - Updated for new database structure with ObjectId fix
 
 const { MongoClient, ObjectId } = require("mongodb");
 const uri = "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/";
@@ -71,10 +71,16 @@ async function createTopic(req, res) {
             
             // If user is logged in, subscribe them to the new topic
             if (userId) {
-                await usersCollection.updateOne(
-                    { _id: new ObjectId(userId) },
-                    { $addToSet: { subscribedTopics: topicId } }
-                );
+                try {
+                    // Use $addToSet without converting userId to ObjectId
+                    await usersCollection.updateOne(
+                        { userId: userId }, // Look up user by userId field, not _id
+                        { $addToSet: { subscribedTopics: topicId } }
+                    );
+                } catch (subscribeError) {
+                    console.error('Error subscribing user to topic:', subscribeError);
+                    // Continue even if subscription fails
+                }
             }
         }
         
@@ -157,9 +163,9 @@ async function subscribeToTopic(req, res) {
             return res.status(404).json({ error: 'Topic not found' });
         }
         
-        // Subscribe user to topic
+        // Subscribe user to topic - find user by userId field, not _id
         await usersCollection.updateOne(
-            { _id: new ObjectId(userId) },
+            { userId: userId },
             { $addToSet: { subscribedTopics: topic._id } }
         );
         
@@ -195,9 +201,9 @@ async function unsubscribeFromTopic(req, res) {
             return res.status(404).json({ error: 'Topic not found' });
         }
         
-        // Unsubscribe user from topic
+        // Unsubscribe user from topic - find user by userId field, not _id
         await usersCollection.updateOne(
-            { _id: new ObjectId(userId) },
+            { userId: userId },
             { $pull: { subscribedTopics: topic._id } }
         );
         
