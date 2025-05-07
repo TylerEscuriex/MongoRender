@@ -12,9 +12,9 @@ const path = require('path');
 const port = process.env.PORT || 3000;
 
 // Import the singleton database connection
-const database = require('./utils/database');
+const database = require('./Utils/database');
 // Import the observer pattern implementation
-const observer = require('./utils/observer');
+const observer = require('./Utils/observer');
 
 console.log("Imported core modules");
 
