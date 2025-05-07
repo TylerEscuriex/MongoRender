@@ -1,4 +1,4 @@
-// Routes/topicsRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const topicsController = require('../Controllers/topicsController');
@@ -11,17 +11,17 @@ router.get('/topics', async (req, res) => {
         let availableTopics = [];
         let statistics = {};
         
-        // If user is logged in, get their subscribed topics with recent messages (T2.1)
+        // If user is logged in, get their subscribed topics with recent messages 
         if (userId) {
             subscribedTopics = await topicsController.getTopicsWithRecentMessages(userId);
-            // Get topics available for subscription (T2.2)
+            // Get topics available for subscription
             availableTopics = await topicsController.getAvailableTopics(userId);
         } else {
             // If not logged in, get all topics
             availableTopics = await topicsController.getAllTopics();
         }
         
-        // Get topic statistics (T8)
+        // Get topic statistics 
         statistics = await topicsController.getTopicStatistics();
         
         // Render the page with all data
@@ -42,16 +42,16 @@ router.get('/topics', async (req, res) => {
     }
 });
 
-// POST request to create a new topic (T3)
+// POST request to create a new topic 
 router.post('/topics/create', topicsController.createTopic);
 
-// POST request to add a message to a topic (T4)
+// POST request to add a message to a topic 
 router.post('/topics/message', topicsController.addMessage);
 
 // POST request to subscribe to a topic
 router.post('/topics/subscribe', topicsController.subscribeToTopic);
 
-// POST request to unsubscribe from a topic (T2.2)
+// POST request to unsubscribe from a topic 
 router.post('/topics/unsubscribe', topicsController.unsubscribeFromTopic);
 
 module.exports = router;
