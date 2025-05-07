@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/authController.js');
+const authController = require('../Controllers/authController.js');
 
 // Route to render the register form
 router.get('/register', authController.renderRegisterForm);

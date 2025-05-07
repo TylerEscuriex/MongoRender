@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const topicsController = require('../controllers/topicsController');
+const topicsController = require('../Controllers/topicsController');
 
 // GET request to fetch topics and render the topics page
 router.get('/topics', async (req, res) => {
