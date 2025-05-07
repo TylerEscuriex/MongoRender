@@ -1,7 +1,7 @@
-// Utils/database.js
+
 const { MongoClient } = require("mongodb");
 
-// Use environment variables for connection URI, with fallback
+// Use environment variables for connection URI
 const uri = process.env.MONGODB_URI || "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/";
 
 class DatabaseConnection {
@@ -10,7 +10,7 @@ class DatabaseConnection {
             return DatabaseConnection.instance;
         }
         
-        // Log connection string (with password hidden for security)
+        // Log connection string
         console.log("Database URI:", uri.replace(/mongodb\+srv:\/\/[^:]+:([^@]+)@/, "mongodb+srv://[username]:[hidden]@"));
         
         this.client = new MongoClient(uri);
@@ -53,5 +53,5 @@ class DatabaseConnection {
     }
 }
 
-// Export a singleton instance
+//singleton instance
 module.exports = new DatabaseConnection();
