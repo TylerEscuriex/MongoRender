@@ -1,4 +1,6 @@
-// testmongo.js - Updated with lowercase folder names
+// testmongo.js - Updated with navigation bar support and EJS rendering
+
+console.log("Application starting...");
 
 const express = require('express');
 const { MongoClient } = require("mongodb");
@@ -6,10 +8,9 @@ const app = express();
 const path = require('path');
 const port = process.env.PORT || 3000;
 
-console.log("Application starting...");
 console.log("Imported core modules");
 
-// Import routes - Using lowercase folder names
+// Import routes
 let authRoutes, topicsRoutes;
 try {
   console.log("Attempting to import route modules...");
@@ -58,10 +59,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 console.log("Added body parsing middleware");
 
-// Set views directory - Using lowercase folder names
-app.set('views', path.join(__dirname, 'views'));
+// Set views directory - Use correct capitalization
+app.set('views', path.join(__dirname, 'Views'));
 app.set('view engine', 'ejs');
-console.log("Set up EJS view engine with views directory:", path.join(__dirname, 'views'));
+console.log("Set up EJS view engine with views directory:", path.join(__dirname, 'Views'));
 
 // Custom cookie parser
 app.use((req, res, next) => {
@@ -80,11 +81,18 @@ app.use((req, res, next) => {
 });
 console.log("Added custom cookie parser middleware");
 
-// Simple test route to verify the server is running
+// Simple test route
 app.get('/test', (req, res) => {
   res.send('Server is running correctly!');
 });
 console.log("Added test route at /test");
+
+// Add a logout route
+app.get('/logout', (req, res) => {
+  res.clearCookie('authToken');
+  res.redirect('/');
+});
+console.log("Added logout route");
 
 // Routes
 try {
@@ -101,47 +109,13 @@ try {
   console.error("Error registering topic routes:", error);
 }
 
-// Default route
+// Default route - use EJS rendering
 app.get('/', (req, res) => {
   console.log("Handling request to homepage");
   const authToken = req.cookies.authToken;
-  const content = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-          <title>Message Board</title>
-          <style>
-              body {
-                  font-family: Arial, sans-serif;
-                  margin: 20px;
-                  line-height: 1.6;
-              }
-              h1 {
-                  color: #333;
-              }
-              .button {
-                  display: inline-block;
-                  background-color: #4CAF50;
-                  color: white;
-                  padding: 10px 15px;
-                  margin: 5px;
-                  text-decoration: none;
-                  border-radius: 4px;
-              }
-          </style>
-      </head>
-      <body>
-          <h1>Welcome to the Message Board</h1>
-          <p>You are authenticated as: ${authToken || 'Guest'}</p>
-          <div>
-              <a class="button" href="/topics">View Topics</a>
-              <a class="button" href="/register">Register</a>
-              <a class="button" href="/login">Login</a>
-          </div>
-      </body>
-      </html>
-  `;
-  res.send(content);
+  res.render('home', { 
+    authToken: authToken || null 
+  });
 });
 console.log("Added default route handler for homepage");
 
@@ -181,10 +155,12 @@ async function startServer() {
 // Catch any unhandled errors
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
+  // Don't exit the process here, just log the error
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Promise Rejection:', reason);
+  // Don't exit the process here, just log the error
 });
 
 // Start the server
