@@ -1,4 +1,4 @@
-// testmongo.js - Updated for Render deployment
+// testmongo.js - Updated to work in both local and Render environments
 
 // Load environment variables from .env file
 require('dotenv').config();
@@ -6,10 +6,15 @@ require('dotenv').config();
 console.log("Application starting...");
 
 const express = require('express');
-const { MongoClient } = require("mongodb");
 const app = express();
 const path = require('path');
+// Use PORT from environment or fallback to 3000 for local development
 const port = process.env.PORT || 3000;
+
+// Import the singleton database connection
+const database = require('./utils/database');
+// Import the observer pattern implementation
+const observer = require('./utils/observer');
 
 console.log("Imported core modules");
 
@@ -23,38 +28,6 @@ try {
 } catch (error) {
   console.error("Error importing route modules:", error);
   process.exit(1); // Exit if route modules can't be loaded
-}
-
-// MongoDB URI from environment variables
-const uri = process.env.MONGODB_URI || "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/";
-console.log("Using MongoDB URI:", uri.replace(/mongodb\+srv:\/\/[^:]+:([^@]+)@/, "mongodb+srv://[username]:[hidden]@"));
-
-// Database connection
-let client;
-try {
-  client = new MongoClient(uri);
-  console.log("Created MongoDB client instance");
-} catch (error) {
-  console.error("Error creating MongoDB client:", error);
-  process.exit(1);
-}
-
-// Connect to MongoDB
-async function connectToDatabase() {
-  console.log("Attempting to connect to MongoDB...");
-  try {
-    await client.connect();
-    console.log("Successfully connected to MongoDB!");
-    
-    // Test the connection by listing databases
-    const dbList = await client.db().admin().listDatabases();
-    console.log("Available databases:", dbList.databases.map(db => db.name).join(", "));
-    
-    return true;
-  } catch (error) {
-    console.error("Failed to connect to MongoDB:", error);
-    return false;
-  }
 }
 
 // Middleware
@@ -112,13 +85,31 @@ try {
   console.error("Error registering topic routes:", error);
 }
 
-// Default route - use EJS rendering
-app.get('/', (req, res) => {
+// Default route - use EJS rendering - Updated to show recent messages (T2.1)
+app.get('/', async (req, res) => {
   console.log("Handling request to homepage");
   const authToken = req.cookies.authToken;
-  res.render('home', { 
-    authToken: authToken || null 
-  });
+  
+  try {
+    let subscribedTopics = [];
+    
+    // If user is logged in, get their subscribed topics with recent messages
+    if (authToken) {
+      const topicsController = require('./Controllers/topicsController');
+      subscribedTopics = await topicsController.getTopicsWithRecentMessages(authToken);
+    }
+    
+    res.render('home', { 
+      authToken: authToken || null,
+      subscribedTopics: subscribedTopics || []
+    });
+  } catch (error) {
+    console.error("Error rendering homepage:", error);
+    res.render('home', { 
+      authToken: authToken || null,
+      subscribedTopics: []
+    });
+  }
 });
 console.log("Added default route handler for homepage");
 
@@ -133,24 +124,31 @@ console.log("Added error handling middleware");
 async function startServer() {
   console.log("Starting server...");
   try {
-    const connected = await connectToDatabase();
-    if (connected) {
-      // Listen on all interfaces (0.0.0.0) instead of just localhost
-      const server = app.listen(port, '0.0.0.0', () => {
-        console.log(`Server started successfully on port ${port}`);
-        console.log(`Server is accessible at http://0.0.0.0:${port}`);
-      });
+    // Using the singleton database connection
+    await database.connect();
+    console.log("Database connected via Singleton pattern");
+    
+    // Listen on all interfaces (0.0.0.0) instead of just localhost
+    // This works both locally and on Render
+    const server = app.listen(port, '0.0.0.0', () => {
+      console.log(`Server started successfully on port ${port}`);
       
-      // Handle server errors
-      server.on('error', (error) => {
-        console.error("Server error:", error);
-        if (error.code === 'EADDRINUSE') {
-          console.error(`Port ${port} is already in use. Please use a different port.`);
-        }
-      });
-    } else {
-      console.error("Failed to start server due to database connection issues");
-    }
+      // Detect if running in production (Render) or local environment
+      const isProduction = process.env.NODE_ENV === 'production';
+      if (isProduction) {
+        console.log(`Server is deployed and running on Render`);
+      } else {
+        console.log(`Server is running locally at http://localhost:${port}`);
+      }
+    });
+    
+    // Handle server errors
+    server.on('error', (error) => {
+      console.error("Server error:", error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use. Please use a different port.`);
+      }
+    });
   } catch (error) {
     console.error("Fatal error while starting server:", error);
   }

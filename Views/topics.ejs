@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Topics</title>
+    <title>Message Board - Topics</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Custom CSS styles */
         .topic {
+            margin-bottom: 20px;
+        }
+        .statistics {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
             margin-bottom: 20px;
         }
     </style>
@@ -31,7 +36,7 @@
             </li>
           </ul>
           <ul class="navbar-nav">
-            <% if (authToken) { %>
+            <% if (typeof authToken !== 'undefined' && authToken) { %>
               <li class="nav-item">
                 <span class="nav-link">Logged in as: <%= authToken %></span>
               </li>
@@ -52,34 +57,151 @@
     </nav>
 
     <div class="container">
-        <h1 class="mt-3 mb-4">Topics</h1>
-
-        <div id="topics-container">
-            <% topics.forEach(topic => { %>
-                <div class="topic border p-3 rounded">
-                    <h2 class="mb-3"><%= topic.name %></h2>
-                    <ul class="list-group mb-3">
-                        <% if (topic.messages && topic.messages.length > 0) { %>
-                            <% topic.messages.forEach(message => { %>
-                                <li class="list-group-item"><%= message %></li>
-                            <% }) %>
-                        <% } else { %>
-                            <li class="list-group-item">No messages yet</li>
-                        <% } %>                    
-                    </ul>
-                    <!-- Updated form to include topic name -->
-                    <form action="/topics" method="POST">
-                        <input type="hidden" name="topicName" value="<%= topic.name %>"> <!-- Assuming topic.name is the unique identifier for each topic -->
-                        <div class="input-group mb-3">
-                            <input type="text" class="form-control" name="message" placeholder="Enter your message">
-                            <button class="btn btn-primary" type="submit">Post Message</button>
-                        </div>
-                    </form>
-                </div>
-            <% }) %>
+        <h1 class="mt-3 mb-4">Message Board</h1>
+        
+        <!-- Topic Statistics (T8) -->
+        <div class="statistics">
+            <h3>Topic Statistics</h3>
+            <p>Total Topics: <%= statistics.totalTopics %></p>
+            <p>Total Topic Accesses: <%= statistics.totalAccesses %></p>
+            <h4>Most Accessed Topics:</h4>
+            <% if (statistics.topicsByAccess && statistics.topicsByAccess.length > 0) { %>
+                <ul class="list-group">
+                    <% statistics.topicsByAccess.slice(0, 5).forEach(topic => { %>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <%= topic.name %>
+                            <span class="badge bg-primary rounded-pill"><%= topic.accessCount %> accesses</span>
+                        </li>
+                    <% }) %>
+                </ul>
+            <% } else { %>
+                <p>No topic access data available yet.</p>
+            <% } %>
         </div>
-        <div class="mt-5">
-            <h2>Create a New Topic</h2>
-            <form action="/topics" method="POST">
-                <div class="mb-3">
-                    <label for="new-topic-
+        
+        <% if(authToken) { %>
+            <!-- Subscribed Topics with 2 most recent messages (T2.1) -->
+            <div class="mb-5">
+                <h2>Your Subscribed Topics</h2>
+                <% if(subscribedTopics && subscribedTopics.length > 0) { %>
+                    <div class="row">
+                        <% subscribedTopics.forEach(topic => { %>
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0"><%= topic.name %></h5>
+                                        <!-- Unsubscribe button (T2.2) -->
+                                        <form action="/topics/unsubscribe" method="POST" class="d-inline">
+                                            <input type="hidden" name="topicId" value="<%= topic._id %>">
+                                            <button class="btn btn-warning" type="submit">Unsubscribe</button>
+                                        </form>
+                                    </div>
+                                    <div class="card-body">
+                                        <h6>Recent Messages:</h6>
+                                        <% if(topic.messages && topic.messages.length > 0) { %>
+                                            <ul class="list-group list-group-flush">
+                                                <% topic.messages.forEach(message => { %>
+                                                    <li class="list-group-item"><%= message %></li>
+                                                <% }) %>
+                                            </ul>
+                                        <% } else { %>
+                                            <p class="text-muted">No messages yet</p>
+                                        <% } %>
+                                        
+                                        <!-- Post message form (T4) -->
+                                        <form action="/topics/message" method="POST" class="mt-3">
+                                            <input type="hidden" name="topicName" value="<%= topic.name %>">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" name="message" placeholder="Add a message" required>
+                                                <button class="btn btn-primary" type="submit">Post</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } else { %>
+                    <p>You haven't subscribed to any topics yet.</p>
+                <% } %>
+            </div>
+            
+            <!-- Topics Available for Subscription (T2.2) -->
+            <div class="mb-5">
+                <h2>Topics Available for Subscription</h2>
+                <% if(availableTopics && availableTopics.length > 0) { %>
+                    <div class="row">
+                        <% availableTopics.forEach(topic => { %>
+                            <div class="col-md-4 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><%= topic.name %></h5>
+                                        <p class="card-text text-muted">Created by: <%= topic.createdBy %></p>
+                                        
+                                        <!-- Subscribe button -->
+                                        <form action="/topics/subscribe" method="POST">
+                                            <input type="hidden" name="topicId" value="<%= topic._id %>">
+                                            <button class="btn btn-success" type="submit">Subscribe</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } else { %>
+                    <div class="alert alert-info">
+                        <p>You are subscribed to all available topics!</p>
+                    </div>
+                <% } %>
+            </div>
+        <% } else { %>
+            <!-- Message for non-logged in users -->
+            <div class="alert alert-info mb-4">
+                <p>Please <a href="/login">login</a> to subscribe to topics and post messages.</p>
+            </div>
+            
+            <!-- Show all available topics for non-logged in users -->
+            <div class="row mb-4">
+                <% if(availableTopics && availableTopics.length > 0) { %>
+                    <% availableTopics.forEach(topic => { %>
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title"><%= topic.name %></h5>
+                                    <p class="card-text text-muted">Created by: <%= topic.createdBy %></p>
+                                    <a href="/login" class="btn btn-primary">Login to Subscribe</a>
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="col-12">
+                        <p>No topics available yet.</p>
+                    </div>
+                <% } %>
+            </div>
+        <% } %>
+        
+        <!-- Create a New Topic (T3) -->
+        <% if(authToken) { %>
+            <div class="mt-5">
+                <h2>Create a New Topic</h2>
+                <form action="/topics/create" method="POST">
+                    <div class="mb-3">
+                        <label for="new-topic-name" class="form-label">Topic Name:</label>
+                        <input type="text" id="new-topic-name" class="form-control" name="name" placeholder="Enter topic name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-topic-message" class="form-label">First Message (optional):</label>
+                        <textarea id="new-topic-message" class="form-control" name="message" placeholder="Start the conversation" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Topic</button>
+                </form>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
