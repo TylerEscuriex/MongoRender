@@ -25,7 +25,7 @@
             </li>
           </ul>
           <ul class="navbar-nav">
-            <% if (authToken) { %>
+            <% if (typeof authToken !== 'undefined' && authToken) { %>
               <li class="nav-item">
                 <span class="nav-link">Logged in as: <%= authToken %></span>
               </li>
@@ -53,6 +53,13 @@
                         <h3>Register</h3>
                     </div>
                     <div class="card-body">
+                        <!-- Display error message if present -->
+                        <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+                            <div class="alert alert-danger" role="alert">
+                                <%= errorMessage %>
+                            </div>
+                        <% } %>
+                        
                         <form action="/register" method="POST">
                             <div class="mb-3">
                                 <label for="user_ID" class="form-label">Username</label>
