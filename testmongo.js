@@ -1,57 +1,76 @@
-const { MongoClient } = require("mongodb");
+// testmongo.js
 
-// The uri string must be the connection string for the database (obtained on Atlas).
-const uri = "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/?retryWrites=true&w=majority&appName=temdb";
-
-// --- This is the standard stuff to get it to work on the browser
 const express = require('express');
+const { MongoClient } = require("mongodb");
 const app = express();
+const path = require('path');
 const port = 3000;
-app.listen(port);
-console.log('Server started at http://localhost:' + port);
 
+// Import routes
+const authRoutes = require('./routes/authRoutes.js');
+const topicsRoutes = require('./routes/topicsRoutes.js');
+
+// MongoDB URI
+const uri = "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/";
+
+// Database connection
+const client = new MongoClient(uri);
+
+// Connect to MongoDB
+async function connectToDatabase() {
+    try {
+        await client.connect();
+        console.log("Connected to MongoDB");
+    } catch (error) {
+        console.error("Error connecting to MongoDB:", error);
+    }
+}
+
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// routes will go here
-
-// Default route:
-// Route to access database:
-app.get('/', function(req, res) {
-  const myquery = req.query;
-  var outstring = 'Starting... ';
-  res.send(outstring);
-  });
-
-app.get('/say/:name', function(req, res) {
-  res.send('Hello ' + req.params.name + '!');
+// Custom cookie parser
+app.use((req, res, next) => {
+    if (req.headers.cookie) {
+        const rawCookies = req.headers.cookie.split('; ');
+        const cookies = {};
+        rawCookies.forEach(rawCookie => {
+            const [key, value] = rawCookie.split('=');
+            cookies[key] = value;
+        });
+        req.cookies = cookies;
+    } else {
+        req.cookies = {};
+    }
+    next();
 });
 
+// Set view engine
+app.set('view engine', 'ejs');
 
-// Route to access database:
-app.get('/api/mongo/:item', function(req, res) {
-const client = new MongoClient(uri);
-const searchKey = "{ partID: '" + req.params.item + "' }";
-console.log("Looking for: " + searchKey);
+// Routes
+app.use(authRoutes);
+app.use(topicsRoutes);
 
-async function run() {
-  try {
-    const database = client.db('temdb');
-    const parts = database.collection('MyStuff');
+// Default route
+app.get('/', (req, res) => {
+    const authToken = req.cookies.authToken;
+    const content = `
+        You are authenticated as: ${authToken || 'Guest'} <br> 
+        <button onclick="window.location.href='/topics'">View Topics</button>
+        <button onclick="window.location.href='/register'">Register</button>
+        <button onclick="window.location.href='/login'">Login</button>
+    `;
+    res.send(content);
+});
 
-    // Hardwired Query for a part that has partID '12345'
-    // const query = { partID: '12345' };
-    // But we will use the parameter provided with the route
-    const query = { partID: req.params.item };
-
-    const part = await parts.findOne(query);
-    console.log(part);
-    res.send('Found this: ' + JSON.stringify(part));  //Use stringify to print a json
-
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
-  }
+// Start the server
+async function startServer() {
+    await connectToDatabase();
+    app.listen(port, () => {
+        console.log(`Server started at http://localhost:${port}`);
+    });
 }
-run().catch(console.dir);
-});
+
+startServer();

@@ -1,30 +1,81 @@
 const path = require('path');
 const { MongoClient } = require("mongodb");
-const Volunteer = require('../models/Volunteer');
-// The uri string must be the connection string for the database (obtained on Atlas).
-const uri = "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/?retryWrites=true&w=majority&appName=temdb";
+const crypto = require('crypto');
+const uri = "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/";
 
+// Function to render the register form
+exports.renderRegisterForm = (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'views', 'register.html'));
+};
 
-// Register a new volunteer
-exports.register = async (req, res) => {
+// Function to render the login form
+exports.renderLoginForm = (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'views', 'login.html'));
+};
+
+// Function to handle user registration
+exports.registerUser = async (req, res) => {
     try {
-        const { name, email } = req.body;
-        const volunteer = new Volunteer({ name, email });
-        await volunteer.save();
-        res.redirect('/home');
+        const { user_ID, password } = req.body;
+
+        // Hash the password
+        const hashedPassword = hashPassword(password);
+
+        const client = new MongoClient(uri);
+        await client.connect();
+        const db = client.db('temdb');
+        const users = db.collection('users');
+
+        // Check if user already exists
+        const existingUser = await users.findOne({ user_ID });
+        if (existingUser) {
+            return res.status(400).json({ error: 'User already exists' });
+        }
+
+        // Insert the new user into the database
+        await users.insertOne({ user_ID, password: hashedPassword });
+        await client.close();
+
+        res.redirect('/'); // Redirect to homepage after successful registration
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Server error');
+        console.error('Error registering user:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 };
 
-// Connect to MongoDB
+// Function to handle user login
+exports.loginUser = async (req, res) => {
+    try {
+        const { user_ID, password } = req.body;
+
         const client = new MongoClient(uri);
         await client.connect();
-        const db = client.db('temdb'); // Change to your database name
-        const users = db.collection('users'); // Create a collection named 'users'
+        const db = client.db('temdb');
+        const users = db.collection('users');
 
-// Log in a volunteer (implement authentication here)
-exports.login = (req, res) => {
-    res.render('login');
+        const user = await users.findOne({ user_ID });
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const hashedPassword = hashPassword(password);
+        if (hashedPassword !== user.password) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Set cookie
+        res.cookie('authToken', user_ID, { httpOnly: true });
+
+        res.redirect('/'); // Redirect to homepage after successful login
+    } catch (error) {
+        console.error('Error logging in:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 };
+
+// Custom hashing function using SHA-256
+function hashPassword(password) {
+    const hash = crypto.createHash('sha256');
+    hash.update(password);
+    return hash.digest('hex');
+}
