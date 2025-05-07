@@ -1,196 +1,199 @@
-// topicsController.js
+// testmongo.js - Fully edited with improved error handling
 
+console.log("Application starting...");
+
+const express = require('express');
 const { MongoClient } = require("mongodb");
-const uri = "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/";
+const app = express();
+const path = require('path');
+const port = process.env.PORT || 3000;
 
-async function getAllTopicsWithMessages() {
-    try {
-        const client = new MongoClient(uri);
-        await client.connect();
-        const db = client.db('temdb');
-        const topics = db.collection('MyDBexample');
+console.log("Imported core modules");
 
-        // Find all topics
-        const allTopics = await topics.find({}).toArray();
-
-        // Ensure every topic has a messages array (even if empty)
-        const topicsWithMessages = allTopics.map(topic => {
-            // If topic doesn't have messages property, initialize it as an empty array
-            if (!topic.messages) {
-                topic.messages = [];
-            }
-            return topic;
-        });
-
-        await client.close(); // Close the client connection
-        return topicsWithMessages;
-    } catch (error) {
-        console.error('Error fetching topics with messages:', error);
-        throw new Error('Internal Server Error');
-    }
+// Import routes
+let authRoutes, topicsRoutes;
+try {
+  console.log("Attempting to import route modules...");
+  authRoutes = require('./routes/authRoutes.js');
+  topicsRoutes = require('./routes/topicsRoutes.js');
+  console.log("Successfully imported route modules");
+} catch (error) {
+  console.error("Error importing route modules:", error);
+  process.exit(1); // Exit if route modules can't be loaded
 }
 
-// Function to create a new topic
-async function createTopic(req, res) {
-    try {
-        // Extract topic details from request body
-        const { name, message } = req.body;
+// MongoDB URI
+const uri = process.env.MONGODB_URI || "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.net/";
+console.log("Using MongoDB URI:", uri.replace(/mongodb\+srv:\/\/[^:]+:([^@]+)@/, "mongodb+srv://[username]:[hidden]@"));
 
-        // Connect to MongoDB
-        const client = new MongoClient(uri);
-        await client.connect();
-        const db = client.db('temdb');
-        const topics = db.collection('MyDBexample');
-
-        // Check if topic already exists
-        const existingTopic = await topics.findOne({ name });
-        if (existingTopic) {
-            // If topic exists and message is provided, add message to existing topic
-            if (message) {
-                await topics.updateOne(
-                    { name }, 
-                    { $push: { messages: message } }
-                );
-            }
-        } else {
-            // Create new topic with initial message
-            await topics.insertOne({
-                name,
-                messages: message ? [message] : [] // Add initial message if provided
-            });
-        }
-
-        await client.close();
-
-        // Redirect back to the topics page
-        res.redirect('/topics');
-    } catch (error) {
-        console.error('Error creating topic:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+// Database connection
+let client;
+try {
+  client = new MongoClient(uri);
+  console.log("Created MongoDB client instance");
+} catch (error) {
+  console.error("Error creating MongoDB client:", error);
+  process.exit(1);
 }
 
-// Function to add a message to an existing topic
-async function addMessage(req, res) {
-    try {
-        // Extract message details from request body
-        const { topicName, message } = req.body;
-
-        // Connect to MongoDB
-        const client = new MongoClient(uri);
-        await client.connect();
-        const db = client.db('temdb');
-        const topics = db.collection('MyDBexample');
-
-        // Find the topic by name
-        const topic = await topics.findOne({ name: topicName });
-
-        if (!topic) {
-            // If topic not found, return error
-            await client.close();
-            return res.status(404).json({ error: 'Topic not found' });
-        }
-
-        // Add the new message to the topic
-        await topics.updateOne({ name: topicName }, { $push: { messages: message } });
-
-        await client.close();
-
-        // Redirect back to the topics page
-        res.redirect('/topics');
-    } catch (error) {
-        console.error('Error adding message:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+// Connect to MongoDB
+async function connectToDatabase() {
+  console.log("Attempting to connect to MongoDB...");
+  try {
+    await client.connect();
+    console.log("Successfully connected to MongoDB!");
+    
+    // Test the connection by listing databases
+    const dbList = await client.db().admin().listDatabases();
+    console.log("Available databases:", dbList.databases.map(db => db.name).join(", "));
+    
+    return true;
+  } catch (error) {
+    console.error("Failed to connect to MongoDB:", error);
+    return false;
+  }
 }
 
-async function subscribeToTopic(req, res) {
-    try {
-        const { topicName } = req.body;
-        const user_ID = req.cookies.authToken; // Assuming user ID is available in cookies
+// Configure Express application
+console.log("Configuring Express application...");
 
-        // Connect to MongoDB
-        const client = new MongoClient(uri);
-        await client.connect();
-        const db = client.db('temdb');
-        const users = db.collection('MyDBexample');
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+console.log("Added body parsing middleware");
 
-        // Find the user by ID
-        const user = await users.findOne({ user_ID });
+// Set views directory
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+console.log("Set up EJS view engine with views directory:", path.join(__dirname, 'views'));
 
-        if (!user) {
-            // User not found
-            await client.close();
-            return res.status(404).json({ error: 'User not found' });
-        }
+// Custom cookie parser
+app.use((req, res, next) => {
+  if (req.headers.cookie) {
+    const rawCookies = req.headers.cookie.split('; ');
+    const cookies = {};
+    rawCookies.forEach(rawCookie => {
+      const [key, value] = rawCookie.split('=');
+      cookies[key] = value;
+    });
+    req.cookies = cookies;
+  } else {
+    req.cookies = {};
+  }
+  next();
+});
+console.log("Added custom cookie parser middleware");
 
-        // Initialize subscribedTopics array if it doesn't exist
-        if (!user.subscribedTopics) {
-            user.subscribedTopics = [];
-        }
+// Simple test route to verify the server is running
+app.get('/test', (req, res) => {
+  res.send('Server is running correctly!');
+});
+console.log("Added test route at /test");
 
-        // Add the topic name to the user's subscribed topics array if not already subscribed
-        if (!user.subscribedTopics.includes(topicName)) {
-            user.subscribedTopics.push(topicName);
-        }
-        
-        // Update the user document
-        await users.updateOne({ user_ID }, { $set: { subscribedTopics: user.subscribedTopics } });
-
-        await client.close(); // Close the client connection
-
-        res.redirect('/topics');
-    } catch (error) {
-        console.error('Error subscribing to topic:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+// Routes
+try {
+  app.use(authRoutes);
+  console.log("Successfully registered auth routes");
+} catch (error) {
+  console.error("Error registering auth routes:", error);
 }
 
-async function unsubscribeFromTopic(req, res) {
-    try {
-        const { topicName } = req.body;
-        const user_ID = req.cookies.authToken; // Assuming user ID is available in cookies
-
-        // Connect to MongoDB
-        const client = new MongoClient(uri);
-        await client.connect();
-        const db = client.db('temdb');
-        const users = db.collection('MyDBexample');
-
-        // Find the user by ID
-        const user = await users.findOne({ user_ID });
-
-        if (!user) {
-            // User not found
-            await client.close();
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        // Initialize subscribedTopics if it doesn't exist
-        if (!user.subscribedTopics) {
-            user.subscribedTopics = [];
-        } else {
-            // Remove the topic name from the user's subscribed topics array
-            user.subscribedTopics = user.subscribedTopics.filter(topic => topic !== topicName);
-        }
-        
-        // Update the user document
-        await users.updateOne({ user_ID }, { $set: { subscribedTopics: user.subscribedTopics } });
-
-        await client.close(); // Close the client connection
-
-        res.redirect('/topics');
-    } catch (error) {
-        console.error('Error unsubscribing from topic:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+try {
+  app.use(topicsRoutes);
+  console.log("Successfully registered topic routes");
+} catch (error) {
+  console.error("Error registering topic routes:", error);
 }
 
-// Export all functions
-module.exports = {
-    getAllTopicsWithMessages,
-    createTopic,
-    addMessage,
-    subscribeToTopic,
-    unsubscribeFromTopic
-};
+// Default route
+app.get('/', (req, res) => {
+  console.log("Handling request to homepage");
+  const authToken = req.cookies.authToken;
+  const content = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>Message Board</title>
+          <style>
+              body {
+                  font-family: Arial, sans-serif;
+                  margin: 20px;
+                  line-height: 1.6;
+              }
+              h1 {
+                  color: #333;
+              }
+              .button {
+                  display: inline-block;
+                  background-color: #4CAF50;
+                  color: white;
+                  padding: 10px 15px;
+                  margin: 5px;
+                  text-decoration: none;
+                  border-radius: 4px;
+              }
+          </style>
+      </head>
+      <body>
+          <h1>Welcome to the Message Board</h1>
+          <p>You are authenticated as: ${authToken || 'Guest'}</p>
+          <div>
+              <a class="button" href="/topics">View Topics</a>
+              <a class="button" href="/register">Register</a>
+              <a class="button" href="/login">Login</a>
+          </div>
+      </body>
+      </html>
+  `;
+  res.send(content);
+});
+console.log("Added default route handler for homepage");
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Express error handler caught an error:", err);
+  res.status(500).send('Something broke! Please check the server logs for details.');
+});
+console.log("Added error handling middleware");
+
+// Start the server
+async function startServer() {
+  console.log("Starting server...");
+  try {
+    const connected = await connectToDatabase();
+    if (connected) {
+      const server = app.listen(port, () => {
+        console.log(`Server started successfully on port ${port}`);
+        console.log(`Server is accessible at http://localhost:${port}`);
+      });
+      
+      // Handle server errors
+      server.on('error', (error) => {
+        console.error("Server error:", error);
+        if (error.code === 'EADDRINUSE') {
+          console.error(`Port ${port} is already in use. Please use a different port.`);
+        }
+      });
+    } else {
+      console.error("Failed to start server due to database connection issues");
+    }
+  } catch (error) {
+    console.error("Fatal error while starting server:", error);
+  }
+}
+
+// Catch any unhandled errors
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Don't exit the process here, just log the error
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Promise Rejection:', reason);
+  // Don't exit the process here, just log the error
+});
+
+// Start the server
+console.log("Calling startServer function...");
+startServer();
+console.log("Server startup process initiated");
