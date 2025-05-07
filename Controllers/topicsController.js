@@ -1,7 +1,7 @@
 // Controllers/topicsController.js
 const { ObjectId } = require('mongodb');
-const database = require('../Utils/database');
-const observer = require('../Utils/observer');
+const database = require('../utils/database');
+const observer = require('../utils/observer');
 
 // Get all topics
 async function getAllTopics() {
@@ -183,6 +183,12 @@ async function addMessage(req, res) {
         
         // Check if user is subscribed to the topic (T4)
         const user = await usersCollection.findOne({ user_ID: userId });
+        
+        // Initialize subscribedTopics if it doesn't exist
+        if (!user.subscribedTopics) {
+            user.subscribedTopics = [];
+        }
+        
         const isSubscribed = user && user.subscribedTopics && 
                             user.subscribedTopics.some(id => id.toString() === topic._id.toString());
         
@@ -214,6 +220,8 @@ async function subscribeToTopic(req, res) {
         const { topicId } = req.body;
         const userId = req.cookies.authToken;
         
+        console.log('Subscribe attempt:', {topicId, userId}); // Debug logging
+        
         if (!userId) {
             return res.status(401).json({ error: 'Authentication required' });
         }
@@ -222,17 +230,54 @@ async function subscribeToTopic(req, res) {
         const usersCollection = await database.getCollection('Users');
         
         // Find topic by ID
-        const topic = await topicsCollection.findOne({ _id: new ObjectId(topicId) });
+        let topicObjectId;
+        try {
+            topicObjectId = new ObjectId(topicId);
+        } catch (error) {
+            console.error('Invalid topic ID format:', topicId);
+            return res.status(400).json({ error: 'Invalid topic ID format' });
+        }
+        
+        const topic = await topicsCollection.findOne({ _id: topicObjectId });
         
         if (!topic) {
+            console.error('Topic not found:', topicId);
             return res.status(404).json({ error: 'Topic not found' });
+        }
+        
+        console.log('Found topic:', topic.name); // Debug logging
+        
+        // Find user
+        const user = await usersCollection.findOne({ user_ID: userId });
+        if (!user) {
+            console.error('User not found:', userId);
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        console.log('Found user:', user.user_ID); // Debug logging
+        
+        // Initialize subscribedTopics array if it doesn't exist
+        if (!user.subscribedTopics) {
+            user.subscribedTopics = [];
+        }
+        
+        // Check if user is already subscribed
+        const isAlreadySubscribed = user.subscribedTopics.some(id => 
+            id.toString() === topicId.toString()
+        );
+        
+        if (isAlreadySubscribed) {
+            console.log('User already subscribed to this topic');
+            return res.redirect('/topics');
         }
         
         // Subscribe user to topic
         await usersCollection.updateOne(
             { user_ID: userId },
-            { $addToSet: { subscribedTopics: topic._id } }
+            { $addToSet: { subscribedTopics: topicObjectId } }
         );
+        
+        console.log('User successfully subscribed to topic');
         
         // Register with observer pattern
         observer.subscribe(topicId, userId);
@@ -250,17 +295,30 @@ async function unsubscribeFromTopic(req, res) {
         const { topicId } = req.body;
         const userId = req.cookies.authToken;
         
+        console.log('Unsubscribe attempt:', {topicId, userId}); // Debug logging
+        
         if (!userId) {
             return res.status(401).json({ error: 'Authentication required' });
         }
         
         const usersCollection = await database.getCollection('Users');
         
+        // Convert topicId to ObjectId
+        let topicObjectId;
+        try {
+            topicObjectId = new ObjectId(topicId);
+        } catch (error) {
+            console.error('Invalid topic ID format:', topicId);
+            return res.status(400).json({ error: 'Invalid topic ID format' });
+        }
+        
         // Unsubscribe user from topic
         await usersCollection.updateOne(
             { user_ID: userId },
-            { $pull: { subscribedTopics: new ObjectId(topicId) } }
+            { $pull: { subscribedTopics: topicObjectId } }
         );
+        
+        console.log('User successfully unsubscribed from topic');
         
         // Unregister from observer pattern
         observer.unsubscribe(topicId, userId);
