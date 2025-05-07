@@ -1,4 +1,4 @@
-// Controllers/topicsController.js
+
 const { ObjectId } = require('mongodb');
 const database = require('../Utils/database');
 const observer = require('../Utils/observer');
@@ -41,7 +41,7 @@ async function getTopicsWithRecentMessages(userId) {
         
         // For each topic, get the 2 most recent messages and increment access count
         const topicsWithMessages = await Promise.all(subscribedTopics.map(async (topic) => {
-            // Increment access count for statistics (T8)
+            // Increment access count for statistics
             await topicsCollection.updateOne(
                 { _id: topic._id },
                 { $inc: { accessCount: 1 } }
@@ -143,12 +143,12 @@ async function createTopic(req, res) {
             name,
             createdBy: userId,
             createdAt: new Date(),
-            accessCount: 0 // For tracking statistics (T8)
+            accessCount: 0 //tracking statistics
         });
         
         const topicId = result.insertedId;
         
-        // Add initial message if provided
+        // Add initial message
         if (message) {
             await messagesCollection.insertOne({
                 topicId: topicId.toString(),
@@ -158,7 +158,7 @@ async function createTopic(req, res) {
             });
         }
         
-        // Subscribe user to the new topic (T3)
+        // Subscribe user to the new topic
         await usersCollection.updateOne(
             { user_ID: userId },
             { $addToSet: { subscribedTopics: topicId } }
@@ -167,7 +167,7 @@ async function createTopic(req, res) {
         // Register with observer pattern
         observer.subscribe(topicId.toString(), userId);
         
-        // Notify any listeners (none for a new topic)
+        // Notify any listeners
         observer.notify(topicId.toString(), `New topic created: ${name}`);
         
         res.redirect('/topics');
@@ -201,7 +201,7 @@ async function addMessage(req, res) {
         // Find or create user
         let user = await usersCollection.findOne({ user_ID: userId });
         if (!user) {
-            // Create user if they don't exist
+            // Create user if none
             const result = await usersCollection.insertOne({
                 user_ID: userId,
                 password: "",
@@ -215,7 +215,7 @@ async function addMessage(req, res) {
             console.log('Created new user for message posting:', userId);
         }
         
-        // Initialize subscribedTopics if it doesn't exist
+        // Initialize subscribedTopics if none
         if (!user.subscribedTopics) {
             user.subscribedTopics = [];
             await usersCollection.updateOne(
@@ -283,17 +283,17 @@ async function subscribeToTopic(req, res) {
         
         console.log('Found topic:', topic.name); // Debug logging
         
-        // Find user - Try to find existing user
+        // Find user
         let user = await usersCollection.findOne({ user_ID: userId });
         
-        // If user not found, create a new user record
+        // If user not found, create a new user
         if (!user) {
             console.log('User not found, creating user record for:', userId);
             
             // Create a new user with the auth token as the ID
             const result = await usersCollection.insertOne({
                 user_ID: userId,
-                password: "", // Empty password since this is an auto-created user
+                password: "", // Empty password
                 subscribedTopics: []
             });
             
@@ -308,7 +308,7 @@ async function subscribeToTopic(req, res) {
         
         console.log('Using user:', user.user_ID); // Debug logging
         
-        // Initialize subscribedTopics array if it doesn't exist
+        // Initialize subscribedTopics array if none
         if (!user.subscribedTopics) {
             console.log('Initializing subscribedTopics array');
             await usersCollection.updateOne(
@@ -346,7 +346,7 @@ async function subscribeToTopic(req, res) {
     }
 }
 
-// Unsubscribe from a topic (T2.2)
+// Unsubscribe from a topic
 async function unsubscribeFromTopic(req, res) {
     try {
         const { topicId } = req.body;
@@ -394,7 +394,7 @@ async function unsubscribeFromTopic(req, res) {
     }
 }
 
-// Get topic access statistics (T8)
+// Get topic access statistics 
 async function getTopicStatistics() {
     try {
         const topicsCollection = await database.getCollection('Topics');
