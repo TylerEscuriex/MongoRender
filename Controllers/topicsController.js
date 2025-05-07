@@ -34,7 +34,7 @@ async function getAllTopicsWithMessages() {
 
 module.exports = {
     getAllTopicsWithMessages,
-    createTopic,
+    createTopic, 
     subscribeToTopic,
     unsubscribeFromTopic,
 };

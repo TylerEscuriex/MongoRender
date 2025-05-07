@@ -1,3 +1,4 @@
+// Updated topicsRoutes.js
 const express = require('express');
 const router = express.Router();
 const topicsController = require('../Controllers/topicsController');
@@ -15,7 +16,14 @@ router.get('/topics', async (req, res) => {
     }
 });
 
-
-router.post('/topics', topicsController.createTopic);
+// POST request to handle form submissions
+router.post('/topics', (req, res) => {
+    // If topicName is provided, it's adding a message to an existing topic
+    if (req.body.topicName) {
+        return topicsController.addMessage(req, res);
+    }
+    // Otherwise, it's creating a new topic
+    return topicsController.createTopic(req, res);
+});
 
 module.exports = router;
