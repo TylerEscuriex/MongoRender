@@ -1,4 +1,3 @@
-// Controllers/authController.js
 const path = require('path');
 const { MongoClient } = require("mongodb");
 const crypto = require('crypto');
