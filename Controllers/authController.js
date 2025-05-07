@@ -5,12 +5,14 @@ const uri = "mongodb+srv://tylerescuriex:TBa1CJQFexW4Q1mi@temdb.n06hy6j.mongodb.
 
 // Function to render the register form
 exports.renderRegisterForm = (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'Views', 'register.html'));
+    // Change from sendFile to render for EJS template
+    res.render('register', { authToken: null });
 };
 
 // Function to render the login form
 exports.renderLoginForm = (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'Views', 'login.html'));
+    // Change from sendFile to render for EJS template
+    res.render('login', { authToken: null });
 };
 
 // Function to handle user registration
@@ -60,7 +62,7 @@ exports.loginUser = async (req, res) => {
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db('temdb');
-        // FIX: Use 'Users' (plural) instead of 'User' (singular)
+        // Use 'Users' (plural) instead of 'User' (singular)
         const users = db.collection('Users');
 
         const user = await users.findOne({ user_ID });
