@@ -1,4 +1,3 @@
-// testmongo.js - Updated to work in both local and Render environments
 
 // Load environment variables from .env file
 require('dotenv').config();
@@ -8,7 +7,7 @@ console.log("Application starting...");
 const express = require('express');
 const app = express();
 const path = require('path');
-// Use PORT from environment or fallback to 3000 for local development
+// Use PORT from environment
 const port = process.env.PORT || 3000;
 
 // Import the singleton database connection
@@ -35,7 +34,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 console.log("Added body parsing middleware");
 
-// Set views directory - Use correct capitalization
+// Set views directory
 app.set('views', path.join(__dirname, 'Views'));
 app.set('view engine', 'ejs');
 console.log("Set up EJS view engine with views directory:", path.join(__dirname, 'Views'));
@@ -85,7 +84,7 @@ try {
   console.error("Error registering topic routes:", error);
 }
 
-// Default route - use EJS rendering - Updated to show recent messages (T2.1)
+// Default route
 app.get('/', async (req, res) => {
   console.log("Handling request to homepage");
   const authToken = req.cookies.authToken;
@@ -128,12 +127,11 @@ async function startServer() {
     await database.connect();
     console.log("Database connected via Singleton pattern");
     
-    // Listen on all interfaces (0.0.0.0) instead of just localhost
-    // This works both locally and on Render
+    // Listen on all interfaces (0.0.0.0)
     const server = app.listen(port, '0.0.0.0', () => {
       console.log(`Server started successfully on port ${port}`);
       
-      // Detect if running in production (Render) or local environment
+      // Detect if running in production
       const isProduction = process.env.NODE_ENV === 'production';
       if (isProduction) {
         console.log(`Server is deployed and running on Render`);
